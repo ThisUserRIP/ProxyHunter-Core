@@ -51,8 +51,6 @@ Since this is a client-side Single Page Application (SPA), it requires no instal
     EntryNodes DF73A1... StrictNodes 1
     ```
 
-![Uploading hezG9mAYO8OhEqCmAbbjAuTg6PNtZpPCQzP7JORXu5TGGaapPSZsH0WEo20yFcOPCKTo_fgML_NXrc8k6J7iYtEg.jpg…]()
-
 
 
 
