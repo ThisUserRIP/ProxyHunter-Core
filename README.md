@@ -41,18 +41,20 @@ Since this is a client-side Single Page Application (SPA), it requires no instal
 ## 📦 Output Data Formats
 
 * **SOCKS/HTTP:** Standard `IP:PORT` format.
+     ![ProxyHunter Interface](assets/socks-http.png)
+
 * **VPN:** Native URI connection strings (e.g., `vless://...`) or a valid YAML proxy array structured for Clash:
     ```yaml
     proxies:
       - {name: "DE-vless83", type: vless, server: node-0.net, port: 443}
     ```
+    ![ProxyHunter Interface](assets/vpn.png)
+
 * **Tor:** A deployment-ready configuration string for your local `torrc` file:
     ```text
     EntryNodes DF73A1... StrictNodes 1
     ```
-
-
-
+    ![ProxyHunter Interface](assets/tor.png)
 
 ---
 
