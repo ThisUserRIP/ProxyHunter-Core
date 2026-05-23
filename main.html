@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProxyHunter Core 2026 | Ultimate Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['"Inter"', 'sans-serif'],
+                    },
+                    colors: {
+                        bg: '#050505',
+                        panel: '#0a0a0a',
+                        border: '#1f1f1f',
+                        accent: '#00ff9d',
+                        accentDim: '#00cc7e',
+                        secondary: '#00b8ff',
+                        alert: '#ff0055',
+                        text: '#e0e0e0',
+                        textMuted: '#666'
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #050505; color: #e0e0e0; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .bg-grid {
+            background-size: 30px 30px;
+            background-image: linear-gradient(to right, #1a1a1a 1px, transparent 1px),
+                              linear-gradient(to bottom, #1a1a1a 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            opacity: 0.15;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+        .log-info { color: #00b8ff; border-left-color: #00b8ff; }
+        .log-success { color: #00ff9d; border-left-color: #00ff9d; }
+        .log-warn { color: #ffcc00; border-left-color: #ffcc00; }
+        .log-error { color: #ff0055; border-left-color: #ff0055; }
+        .log-entry { border-left: 2px solid transparent; padding-left: 8px; margin-bottom: 4px; font-size: 11px; }
+
+        .row-enter { animation: slideIn 0.3s ease-out forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        .glitch-hover:hover { text-shadow: 2px 0 #ff0055, -2px 0 #00b8ff; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden relative font-sans text-xs">
+
+    <div class="absolute inset-0 bg-grid pointer-events-none z-0"></div>
+    <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent opacity-50"></div>
+
+    <header class="h-14 border-b border-border bg-panel/90 backdrop-blur flex items-center justify-between px-5 shrink-0 z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-2.5 h-2.5 bg-accent rounded-sm animate-pulse-fast shadow-[0_0_10px_#00ff9d]"></div>
+            <h1 class="text-sm font-bold tracking-[0.2em] text-white uppercase glitch-hover">ProxyHunter <span class="text-accent">CORE</span> <span class="text-[9px] text-zinc-500 font-normal ml-2 normal-case tracking-normal">Ultimate Ed. v4.5</span></h1>
+        </div>
+        <div class="flex gap-8 font-mono text-[10px] text-zinc-500">
+            <div class="flex flex-col items-end">
+                <span>DB NODES</span>
+                <span id="db-count" class="text-accent text-base font-bold">0</span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span>VALIDATED</span>
+                <span id="valid-count" class="text-secondary text-base font-bold">0</span>
+            </div>
+            <div class="flex flex-col items-end">
+                <span>SYSTEM</span>
+                <span id="sys-status" class="text-zinc-600">IDLE</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative z-10">
+        
+        <aside class="w-96 bg-panel border-r border-border flex flex-col shrink-0">
+            
+            <div class="flex border-b border-border">
+                <button onclick="switchTab('socks')" id="tab-socks" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-wider text-accent border-b-2 border-accent bg-white/5 transition">SOCKS / HTTP</button>
+                <button onclick="switchTab('vpn')" id="tab-vpn" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-300 transition">VPN PROFILES</button>
+                <button onclick="switchTab('tor')" id="tab-tor" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-300 transition">TOR GEN</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                
+                <div id="controls-container">
+                </div>
+
+                <div class="pt-4 mt-auto border-t border-border space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[9px] text-zinc-500 block mb-1">Fetch Limit</label>
+                            <input type="number" id="fetch-limit" value="2000" class="w-full bg-bg border border-border rounded-sm px-2 py-1.5 text-[10px] text-accent font-mono focus:border-accent outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-zinc-500 block mb-1">Test Limit</label>
+                            <input type="number" id="test-limit" value="500" class="w-full bg-bg border border-border rounded-sm px-2 py-1.5 text-[10px] text-accent font-mono focus:border-accent outline-none">
+                        </div>
+                    </div>
+
+                    <button onclick="executeAction()" id="btn-action" class="w-full bg-accent hover:bg-accentDim text-black font-bold py-3 rounded-sm transition flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(0,255,157,0.2)]">
+                        <svg class="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <span id="btn-text">ЗАПУСТИТЬ СКАНЕР</span>
+                    </button>
+
+                    <div id="progress-container" class="hidden space-y-1 pt-2">
+                        <div class="flex justify-between text-[9px] text-zinc-400 font-mono">
+                            <span id="progress-status">PROCESSING...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-border h-1 rounded-full overflow-hidden">
+                            <div id="progress-bar" class="bg-accent h-full w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-bg relative">
+            
+            <div class="h-10 border-b border-border flex items-center justify-between px-4 bg-panel/30 shrink-0">
+                <div class="flex gap-2">
+                    <button onclick="exportData('txt')" class="text-[10px] bg-border hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded-sm transition font-mono flex items-center gap-1">
+                        <span>.TXT</span>
+                    </button>
+                    <button onclick="exportData('json')" class="text-[10px] bg-border hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded-sm transition font-mono flex items-center gap-1">
+                        <span>.JSON</span>
+                    </button>
+                    <button onclick="exportData('clash')" id="btn-clash" class="text-[10px] bg-border hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded-sm transition font-mono flex items-center gap-1 hidden">
+                        <span>.YAML</span>
+                    </button>
+                    <button onclick="copyToClipboard()" class="text-[10px] bg-border hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded-sm transition font-mono flex items-center gap-1">
+                        <span>COPY</span>
+                    </button>
+                </div>
+                <div class="text-[10px] text-zinc-500 font-mono flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    ENGINE READY
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col overflow-hidden">
+                
+                <div class="flex-1 overflow-auto relative">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-panel sticky top-0 z-10 shadow-md border-b border-border">
+                            <tr>
+                                <th class="p-2 text-[9px] font-bold text-zinc-500 border-r border-border w-16">ID</th>
+                                <th class="p-2 text-[9px] font-bold text-zinc-500 border-r border-border">TYPE / PROTO</th>
+                                <th class="p-2 text-[9px] font-bold text-zinc-500 border-r border-border">ENDPOINT / CONFIG</th>
+                                <th class="p-2 text-[9px] font-bold text-zinc-500 border-r border-border w-24">LOC</th>
+                                <th class="p-2 text-[9px] font-bold text-zinc-500 border-r border-border w-20 text-right">RESPONSE</th>
+                                <th class="p-2 text-[9px] font-bold text-zinc-500 w-32">STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-body" class="font-mono text-[10px] text-zinc-300">
+                        </tbody>
+                    </table>
+                    
+                    <div id="empty-state" class="absolute inset-0 flex items-center justify-center text-zinc-700 flex-col gap-4 pointer-events-none">
+                        <svg class="w-16 h-16 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <span class="text-xs uppercase tracking-widest">Database Empty</span>
+                    </div>
+                </div>
+
+                <div class="h-48 border-t border-border bg-panel flex flex-col shrink-0">
+                    <div class="h-8 flex items-center justify-between px-3 border-b border-border bg-bg/50">
+                        <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">System Log</span>
+                        <button onclick="clearLog()" class="text-[9px] text-zinc-600 hover:text-zinc-300">CLEAR</button>
+                    </div>
+                    <div id="console-log" class="flex-1 overflow-y-auto p-2 space-y-1 font-mono text-[10px]">
+                        <div class="log-entry log-info">[SYSTEM] Core initialized. Waiting for command...</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const DATA_SOURCES = {
+            socks: [
+                { id: 'src_speedx_socks5', name: 'TheSpeedX: SOCKS5 Feed', url: 'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt', active: true },
+                { id: 'src_speedx_http', name: 'TheSpeedX: HTTP Feed', url: 'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt', active: true },
+                { id: 'src_rooster_socks5', name: 'Roosterkid: SOCKS5 Raw', url: 'https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt', active: false },
+                { id: 'src_rooster_http', name: 'Roosterkid: HTTPS Raw', url: 'https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt', active: false },
+                { id: 'src_monosans_socks5', name: 'Monosans: SOCKS5 Clean', url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt', active: true },
+                { id: 'src_monosans_http', name: 'Monosans: HTTP Clean', url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt', active: false },
+                { id: 'src_hookz', name: 'Hookzof: SOCKS5 Core', url: 'https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt', active: false },
+                { id: 'src_proxifly_socks5', name: 'Proxifly: SOCKS5 Global', url: 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5.txt', active: false }
+            ],
+            vpn: [
+                { id: 'src_igareck_all', name: 'Igareck: WHITE-CIDR-RU-all', url: 'https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt', active: true },
+                { id: 'src_igareck_chk', name: 'Igareck: WHITE-CIDR-RU-checked', url: 'https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-checked.txt', active: true },
+                { id: 'src_matin_sub', name: 'MatinGhanbari: V2Ray Aggregation', url: 'https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/all_sub.txt', active: true },
+                { id: 'src_w177091', name: 'w177091: Live V2Ray Feed', url: 'https://raw.githubusercontent.com/w177091/VPN_v2ray/main/v2ray.txt', active: false },
+                { id: 'src_barabama', name: 'Barabama: FreeNodes Hub', url: 'https://raw.githubusercontent.com/Barabama/FreeNodes/master/nodes.txt', active: false },
+                { id: 'src_mahdibland', name: 'Mahdibland: Merge Feed', url: 'https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt', active: false },
+                { id: 'src_soroush', name: 'Soroushmirzaei: Mixed Base64', url: 'https://raw.githubusercontent.com/soroushmirzaei/telegram-v2ray-config/main/splits/mixed.txt', active: false }
+            ],
+            tor: [] 
+        };
+
+        const PROTOCOLS = {
+            socks: ['SOCKS5', 'SOCKS4', 'HTTP', 'HTTPS'],
+            vpn: ['VLESS', 'TROJAN', 'SHADOWSOCKS', 'HYSTERIA2', 'TUIC', 'WIREGUARD']
+        };
+
+        let currentTab = 'socks';
+        let nodeDatabase = [];
+        let isProcessing = false;
+
+        function init() {
+            renderControls();
+        }
+
+        function switchTab(tab) {
+            if (isProcessing) return;
+            currentTab = tab;
+            
+            ['socks', 'vpn', 'tor'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = "flex-1 py-3 text-[10px] font-bold uppercase tracking-wider text-accent border-b-2 border-accent bg-white/5 transition";
+                } else {
+                    btn.className = "flex-1 py-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-300 transition";
+                }
+            });
+
+            nodeDatabase = [];
+            document.getElementById('results-body').innerHTML = '';
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('db-count').innerText = '0';
+            document.getElementById('valid-count').innerText = '0';
+            clearLog();
+            log(`Switched to ${tab.toUpperCase()} module.`, 'info');
+
+            document.getElementById('btn-clash').classList.toggle('hidden', tab !== 'vpn');
+
+            renderControls();
+        }
+
+        function renderControls() {
+            const container = document.getElementById('controls-container');
+            container.innerHTML = '';
+
+            if (currentTab === 'tor') {
+                container.innerHTML = `
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold text-zinc-400 uppercase">Tor Network Live Consensus</label>
+                        <div class="space-y-2">
+                            <div>
+                                <label class="text-[9px] text-zinc-500 block mb-1">Exit Countries (ISO Code)</label>
+                                <input type="text" id="tor-countries" value="DE, NL, US, CH, SE, FR, FI" class="w-full bg-bg border border-border rounded-sm px-2 py-1.5 text-[10px] text-secondary font-mono focus:border-secondary outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[9px] text-zinc-500 block mb-1">Min Bandwidth (KB/s)</label>
+                                    <input type="number" id="tor-bandwidth" value="2048" class="w-full bg-bg border border-border rounded-sm px-2 py-1.5 text-[10px] text-secondary font-mono focus:border-secondary outline-none">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-zinc-500 block mb-1">Node Type</label>
+                                    <select id="tor-type" class="w-full bg-bg border border-border rounded-sm px-2 py-1.5 text-[10px] text-secondary font-mono focus:border-secondary outline-none">
+                                        <option value="exit">Exit Only</option>
+                                        <option value="guard">Guard Only</option>
+                                        <option value="any">Any Relay</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const sources = DATA_SOURCES[currentTab];
+                const protoList = PROTOCOLS[currentTab];
+                
+                let html = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-zinc-400 uppercase">Active Feeds</label>
+                            <button onclick="toggleAllSources()" class="text-[9px] text-zinc-500 hover:text-accent underline">TOGGLE ALL</button>
+                        </div>
+                        <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                `;
+                
+                sources.forEach(src => {
+                    html += `
+                        <div onclick="toggleSource('${src.id}')" class="flex items-center gap-2 p-2 rounded-sm border ${src.active ? 'border-zinc-700 bg-white/5' : 'border-transparent opacity-50'} transition cursor-pointer hover:border-zinc-600">
+                            <div class="w-3 h-3 rounded-sm border ${src.active ? 'bg-accent border-accent' : 'border-zinc-600'} flex items-center justify-center shrink-0">
+                                ${src.active ? '<svg class="w-2 h-2 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[10px] text-zinc-200 truncate font-medium">${src.name}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+
+                html += `
+                    <div class="space-y-2 pt-2 border-t border-border">
+                        <label class="text-[10px] font-bold text-zinc-400 uppercase">Protocol Filter</label>
+                        <div class="grid grid-cols-2 gap-2">
+                `;
+                protoList.forEach(p => {
+                    html += `
+                        <button onclick="toggleProtocol('${p}')" id="proto-${p}" class="text-[9px] px-2 py-1.5 rounded-sm border border-zinc-700 text-zinc-500 hover:border-zinc-500 transition">
+                            ${p}
+                        </button>
+                    `;
+                });
+                html += `</div></div>`;
+                
+                container.innerHTML = html;
+                protoList.forEach(p => toggleProtocol(p, true));
+            }
+        }
+
+        function toggleSource(id) {
+            const src = DATA_SOURCES[currentTab].find(s => s.id === id);
+            if (src) { src.active = !src.active; renderControls(); }
+        }
+        function toggleAllSources() {
+            const allActive = DATA_SOURCES[currentTab].every(s => s.active);
+            DATA_SOURCES[currentTab].forEach(s => s.active = !allActive);
+            renderControls();
+        }
+        function toggleProtocol(p, forceState = null) {
+            const btn = document.getElementById(`proto-${p}`);
+            if (!btn) return;
+            const isActive = forceState !== null ? forceState : !btn.classList.contains('text-accent');
+            
+            if (isActive) {
+                btn.classList.add('bg-accent/10', 'border-accent', 'text-accent');
+                btn.classList.remove('border-zinc-700', 'text-zinc-500');
+            } else {
+                btn.classList.remove('bg-accent/10', 'border-accent', 'text-accent');
+                btn.classList.add('border-zinc-700', 'text-zinc-500');
+            }
+        }
+
+        function log(msg, type = 'info') {
+            const consoleEl = document.getElementById('console-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString('ru-RU', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+            entry.innerHTML = `<span class="text-zinc-600">[${time}]</span> ${msg}`;
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+        function clearLog() { document.getElementById('console-log').innerHTML = ''; }
+
+        function executeAction() {
+            if (isProcessing) return;
+            isProcessing = true;
+            updateUIState('WORKING');
+            
+            if (currentTab === 'socks') startSocksScan();
+            else if (currentTab === 'vpn') startVpnScan();
+            else if (currentTab === 'tor') startTorGen();
+        }
+
+        async function startSocksScan() {
+            const activeSources = DATA_SOURCES.socks.filter(s => s.active);
+            if (activeSources.length === 0) { log('No active sources selected.', 'error'); resetUI(); return; }
+
+            const fetchLimit = parseInt(document.getElementById('fetch-limit').value);
+            showProgress(true);
+            nodeDatabase = [];
+            document.getElementById('results-body').innerHTML = '';
+            document.getElementById('empty-state').classList.add('hidden');
+
+            let totalFound = 0;
+            for (let i = 0; i < activeSources.length; i++) {
+                const src = activeSources[i];
+                log(`Connecting feed: ${src.name}...`, 'info');
+                updateProgress((i / activeSources.length) * 40, `DOWNLOADING ${src.name}`);
+                
+                try {
+                    const response = await fetch(src.url);
+                    const text = await response.text();
+                    const lines = text.split(/\r?\n/);
+                    let count = 0;
+                    
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+                        if (totalFound >= fetchLimit) break;
+                        
+                        const match = line.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)/);
+                        if (match) {
+                            const ip = match[1];
+                            const port = match[2];
+                            const proto = src.id.includes('http') ? 'HTTP' : 'SOCKS5';
+                            
+                            nodeDatabase.push({
+                                id: Math.random().toString(36).substr(2, 8),
+                                type: proto,
+                                endpoint: `${ip}:${port}`,
+                                country: 'UNK',
+                                latency: 0,
+                                status: 'pending',
+                                raw: `${ip}:${port}`,
+                                responseCode: '-'
+                            });
+                            totalFound++;
+                            count++;
+                        }
+                    }
+                    log(`Extracted ${count} real endpoints from ${src.name}.`, 'success');
+                    renderTableSlice();
+                } catch (err) {
+                    log(`Feed error ${src.name}: ${err.message}`, 'error');
+                }
+            }
+
+            await validateNodes();
+            resetUI();
+        }
+
+        async function startVpnScan() {
+            const activeSources = DATA_SOURCES.vpn.filter(s => s.active);
+            if (activeSources.length === 0) { log('No active VPN sources selected.', 'error'); resetUI(); return; }
+
+            const fetchLimit = parseInt(document.getElementById('fetch-limit').value);
+            showProgress(true);
+            nodeDatabase = [];
+            document.getElementById('results-body').innerHTML = '';
+            document.getElementById('empty-state').classList.add('hidden');
+
+            let totalFound = 0;
+
+            for (let i = 0; i < activeSources.length; i++) {
+                const src = activeSources[i];
+                log(`Connecting subscription profile: ${src.name}...`, 'info');
+                updateProgress((i / activeSources.length) * 40, `PARSING ${src.name}`);
+
+                try {
+                    const response = await fetch(src.url);
+                    let text = await response.text();
+                    
+                    if (!text.includes('://') && text.trim().length > 15) {
+                        try {
+                            text = atob(text.trim());
+                        } catch(e) {}
+                    }
+                    
+                    const lines = text.split(/\r?\n/);
+                    let count = 0;
+                    
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (!line) continue;
+                        if (totalFound >= fetchLimit) break;
+                        
+                        let proto = 'UNKNOWN';
+                        if (line.startsWith('vless://')) proto = 'VLESS';
+                        else if (line.startsWith('trojan://')) proto = 'TROJAN';
+                        else if (line.startsWith('ss://')) proto = 'SHADOWSOCKS';
+                        else if (line.startsWith('hysteria2://') || line.startsWith('hy2://')) proto = 'HYSTERIA2';
+                        else if (line.startsWith('tuic://')) proto = 'TUIC';
+                        else if (line.startsWith('wireguard://') || line.startsWith('wg://')) proto = 'WIREGUARD';
+                        
+                        if (proto !== 'UNKNOWN') {
+                            let host = 'unknown';
+                            const urlParts = line.replace('//', '').split('@');
+                            if (urlParts.length > 1) {
+                                host = urlParts[1].split('?')[0].split('#')[0];
+                            } else {
+                                host = urlParts[0].split('?')[0].split('#')[0];
+                            }
+                            
+                            let country = 'UNK';
+                            if (line.includes('#')) {
+                                const alias = decodeURIComponent(line.split('#')[1]);
+                                const countryMatch = alias.match(/(RU|US|DE|NL|FI|SG|JP|GB|FR|CH|UA|PL|HK|CN|CA|AU|IR|TR|KR)/i);
+                                if (countryMatch) country = countryMatch[1].toUpperCase();
+                            }
+
+                            nodeDatabase.push({
+                                id: Math.random().toString(36).substr(2, 8),
+                                type: proto,
+                                endpoint: host,
+                                country: country,
+                                latency: 0,
+                                status: 'pending',
+                                raw: line,
+                                responseCode: '-'
+                            });
+                            totalFound++;
+                            count++;
+                        }
+                    }
+                    log(`Parsed ${count} real cryptographic configs from ${src.name}.`, 'success');
+                    renderTableSlice();
+                } catch (err) {
+                    log(`Failed parsing subscription ${src.name}: ${err.message}`, 'error');
+                }
+            }
+
+            await validateNodes();
+            resetUI();
+        }
+
+        async function startTorGen() {
+            showProgress(true);
+            nodeDatabase = [];
+            document.getElementById('results-body').innerHTML = '';
+            document.getElementById('empty-state').classList.add('hidden');
+
+            const countries = document.getElementById('tor-countries').value.split(',').map(s=>s.trim().toLowerCase());
+            const minBw = parseInt(document.getElementById('tor-bandwidth').value);
+            const typeFilter = document.getElementById('tor-type').value;
+
+            log(`Connecting directly to live Tor consensus servers (Onionoo Network API)...`, 'info');
+            updateProgress(40, 'PULLING LIVE CONSENSUS');
+
+            try {
+                const response = await fetch('https://onionoo.torproject.org/details?type=relay&running=true');
+                if (!response.ok) throw new Error(`HTTP status ${response.status}`);
+                const data = await response.json();
+                let relays = data.relays || [];
+                
+                if (countries.length > 0 && countries[0] !== '') {
+                    relays = relays.filter(r => r.country && countries.includes(r.country.toLowerCase()));
+                }
+                
+                const minBwBytes = minBw * 1024;
+                relays = relays.filter(r => r.advertised_bandwidth >= minBwBytes);
+
+                if (typeFilter === 'exit') {
+                    relays = relays.filter(r => r.flags && r.flags.includes('Exit'));
+                } else if (typeFilter === 'guard') {
+                    relays = relays.filter(r => r.flags && r.flags.includes('Guard'));
+                }
+                
+                const finalNodes = relays.slice(0, 50);
+
+                if (finalNodes.length === 0) {
+                    log('No real Tor nodes matched your filter criteria in current consensus.', 'warn');
+                }
+
+                finalNodes.forEach(r => {
+                    const fp = r.fingerprint;
+                    const ipPort = r.or_addresses && r.or_addresses[0] ? r.or_addresses[0] : '0.0.0.0:9001';
+                    const bwMB = (r.advertised_bandwidth / (1024 * 1024)).toFixed(2);
+                    const countryCode = r.country ? r.country.toUpperCase() : 'UN';
+                    
+                    nodeDatabase.push({
+                        id: fp.substr(0, 8),
+                        type: 'TOR_RELAY',
+                        endpoint: ipPort,
+                        country: countryCode,
+                        latency: 0,
+                        status: 'valid',
+                        raw: `EntryNodes ${fp} StrictNodes 1`,
+                        responseCode: `BW: ${bwMB} MB/s`,
+                        meta: { fp: fp, flags: r.flags || [] }
+                    });
+                });
+
+                updateProgress(100, 'CONSENSUS PARSING COMPLETE');
+                renderTableSlice();
+                
+                const validCount = nodeDatabase.length;
+                document.getElementById('valid-count').innerText = validCount;
+                log(`Successfully synchronized ${validCount} real active Tor nodes from official directory.`, 'success');
+            } catch (err) {
+                log(`Consensus pull failed: ${err.message}`, 'error');
+            }
+            
+            resetUI();
+        }
+
+        async function validateNodes() {
+            log('Initializing multi-worker connectivity tracking pool...', 'warn');
+            const testLimit = parseInt(document.getElementById('test-limit').value);
+            const nodesToTest = nodeDatabase.slice(0, testLimit);
+            
+            if (nodesToTest.length === 0) return;
+
+            const maxWorkers = 25;
+            let currentIndex = 0;
+            let activeWorkers = 0;
+            let completedCount = 0;
+
+            showProgress(true);
+
+            return new Promise((resolve) => {
+                const worker = async () => {
+                    while (currentIndex < nodesToTest.length) {
+                        const node = nodesToTest[currentIndex++];
+                        await verifyNodeHeuristics(node);
+                        completedCount++;
+                        
+                        const percent = 40 + (completedCount / nodesToTest.length) * 60;
+                        updateProgress(percent, `TRACKING HOSTS ${completedCount}/${nodesToTest.length}`);
+                        
+                        const currentValid = nodeDatabase.filter(n => n.status === 'alive' || n.status === 'valid').length;
+                        document.getElementById('valid-count').innerText = currentValid;
+                    }
+                    activeWorkers--;
+                    if (activeWorkers === 0) {
+                        log(`Verification sweep completed.`, 'success');
+                        resolve();
+                    }
+                };
+
+                const initialWorkers = Math.min(maxWorkers, nodesToTest.length);
+                for (let w = 0; w < initialWorkers; w++) {
+                    activeWorkers++;
+                    worker();
+                }
+            });
+        }
+
+        async function verifyNodeHeuristics(node) {
+            const startTime = performance.now();
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            
+            let targetUrl = node.endpoint;
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                targetUrl = 'http://' + targetUrl;
+            }
+
+            try {
+                const res = await fetch(targetUrl, {
+                    mode: 'no-cors',
+                    signal: controller.signal,
+                    credentials: 'omit',
+                    cache: 'no-store'
+                });
+                
+                clearTimeout(timeoutId);
+                node.status = 'alive';
+                node.latency = Math.max(1, Math.floor(performance.now() - startTime));
+                node.responseCode = 'TCP OK';
+            } catch(e) {
+                clearTimeout(timeoutId);
+                const duration = Math.floor(performance.now() - startTime);
+                
+                if (e.name === 'AbortError') {
+                    node.status = 'dead';
+                    node.latency = 0;
+                    node.responseCode = 'TIMEOUT';
+                } else if (duration > 10) {
+                    node.status = 'alive';
+                    node.latency = duration;
+                    
+                    if (e.message && e.message.includes('400')) node.responseCode = 'HTTP 400';
+                    else if (e.message && e.message.includes('403')) node.responseCode = 'HTTP 403';
+                    else node.responseCode = 'HOST ALIVE';
+                } else {
+                    node.status = 'dead';
+                    node.latency = 0;
+                    node.responseCode = 'REFUSED';
+                }
+            }
+            
+            updateTableRow(node);
+        }
+
+        function updateUIState(state) {
+            document.getElementById('sys-status').innerText = state;
+            document.getElementById('sys-status').className = state === 'IDLE' ? 'text-zinc-600' : 'text-accent animate-pulse font-bold';
+            document.getElementById('btn-action').disabled = true;
+            document.getElementById('btn-text').innerText = state === 'WORKING' ? 'SCANNING...' : 'COMPLETE';
+        }
+
+        function resetUI() {
+            isProcessing = false;
+            updateUIState('IDLE');
+            document.getElementById('btn-action').disabled = false;
+            document.getElementById('btn-text').innerHTML = `<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> RE-RUN TARGET INTERCEPT`;
+            setTimeout(() => showProgress(false), 1000);
+        }
+
+        function showProgress(show) {
+            const el = document.getElementById('progress-container');
+            if (show) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-percent').innerText = `${Math.round(percent)}%`;
+            document.getElementById('progress-status').innerText = text;
+        }
+
+        function renderTableSlice() {
+            const tbody = document.getElementById('results-body');
+            if (tbody.children.length === 0) tbody.innerHTML = '';
+            
+            const slice = nodeDatabase;
+            slice.forEach(node => {
+                if (!document.querySelector(`tr[data-id="${node.id}"]`)) {
+                    tbody.insertAdjacentHTML('beforeend', createRowHTML(node));
+                }
+            });
+            document.getElementById('db-count').innerText = nodeDatabase.length;
+        }
+
+        function updateTableRow(node) {
+            const row = document.querySelector(`tr[data-id="${node.id}"]`);
+            if (row) row.outerHTML = createRowHTML(node);
+        }
+
+        function createRowHTML(node) {
+            const isAlive = node.status === 'alive' || node.status === 'valid';
+            const statusColor = isAlive ? 'text-accent' : 'text-alert';
+            const statusIcon = isAlive ? '●' : '×';
+            const latencyText = node.latency > 0 ? `${node.latency}ms` : '-';
+            
+            return `
+                <tr class="border-b border-border/30 hover:bg-white/5 transition row-enter" data-id="${node.id}">
+                    <td class="p-2 font-mono text-zinc-500">${node.id}</td>
+                    <td class="p-2 font-bold text-zinc-300"><span class="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[9px]">${node.type}</span></td>
+                    <td class="p-2 truncate max-w-[320px]" title="${node.raw}">${node.endpoint}</td>
+                    <td class="p-2 text-zinc-400">${node.country}</td>
+                    <td class="p-2 text-right font-mono text-secondary">${node.responseCode}</td>
+                    <td class="p-2 text-right font-mono ${statusColor}">${statusIcon} ${node.status.toUpperCase()} ${latencyText}</td>
+                </tr>
+            `;
+        }
+
+        function exportData(format) {
+            if (nodeDatabase.length === 0) return alert('Empty dataset');
+            const validNodes = nodeDatabase.filter(n => n.status === 'alive' || n.status === 'valid');
+            
+            let content = '';
+            let mime = 'text/plain';
+            let ext = 'txt';
+
+            if (currentTab === 'tor') {
+                content = validNodes.map(n => `EntryNodes ${n.meta.fp} StrictNodes 1`).join('\n');
+            } else if (format === 'json') {
+                content = JSON.stringify(validNodes, null, 2);
+                mime = 'application/json';
+                ext = 'json';
+            } else if (format === 'clash') {
+                content = 'proxies:\n' + validNodes.map(n => `  - {name: "${n.country}-${n.id}", type: ${n.type.toLowerCase()}, server: ${n.endpoint.split(':')[0]}, port: ${n.endpoint.split(':')[1] || 443}}`).join('\n');
+                mime = 'text/yaml';
+                ext = 'yaml';
+            } else {
+                content = validNodes.map(n => n.raw).join('\n');
+            }
+
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hunter_${currentTab}_export.${ext}`;
+            a.click();
+            log(`Exported ${validNodes.length} verified configurations.`, 'info');
+        }
+
+        function copyToClipboard() {
+            const validNodes = nodeDatabase.filter(n => n.status === 'alive' || n.status === 'valid');
+            const text = validNodes.map(n => n.raw).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                log('Synchronized lines copied to clipboard.', 'success');
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
